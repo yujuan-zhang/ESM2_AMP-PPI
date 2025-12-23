@@ -1,0 +1,1 @@
+The input data required for this process involves placing the two files from [figshare](https://figshare.com/articles/dataset/ESM2_AMP/28378157)  **1.real_test_dataset_embedding.zip** in the specified location.
