@@ -11,7 +11,8 @@ This project revolves around the paper titled "**ESM2_AMP: an Interpretable Fram
 - Author 1: Yawen Sun, Email: [2108437154@qq.com](mailto:2108437154@qq.com)
 - Author 2: Rui Wang, Email: [2219312248@qq.com](mailto:2219312248@qq.com)
 - Author 3: Zeyu Luo, Email: [1024226968@qq.com](mailto:1024226968@qq.com)
-
+- Author 4: Yujuan Zhang, Email: [yujuan.zhang418@gmail.com](mailto:yujuan.zhang418@gmail.com)
+  
 Your contributions, feedback, and suggestions are highly appreciated. If you encounter any issues or have questions, feel free to reach out to the authors via the provided email addresses. Thank you for your interest in our work!
 
 ## Work Environment Setup
