@@ -30,7 +30,7 @@ test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuff
 
 # loading model
 model = AMP_model(input_dim=1280, hidden1_dim=480, hidden2_dim=240, output_dim=1, encoder_type="transformer").float().to(device)
-checkpoint = torch.load("model_pred/weights_file/ESM2_AMP_CSE.pth")
+checkpoint = torch.load(project_root / "model_pred/weights_file/ESM2_AMP_CSE.pth", map_location=device)
 
 if 'module' in list(checkpoint['model_state_dict'].keys())[0]:
     checkpoint['model_state_dict'] = fix_state_dict(checkpoint['model_state_dict'])
@@ -49,3 +49,4 @@ print(f"MCC: {mcc:.4f}")
 print(f"Precision: {precision:.4f}")
 
 predictions_df.to_csv(os.path.join('test_predictions_ESM2_AMP_CSE.csv'), index=False)
+

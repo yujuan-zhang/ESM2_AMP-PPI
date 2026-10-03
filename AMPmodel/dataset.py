@@ -25,7 +25,7 @@ class CustomDataset(Dataset):
 def load_dataset(mode='split',
                  feature_file='data/real_test_dataset_features.h5',
                  sample_file='data/real_test_dataset_samples.xlsx'):
-    assert mode in ['split', 'segment', 'mean'],
+    assert mode in ['split', 'segment', 'mean']
 
     protein_feature = pd.read_hdf(feature_file, key='df')
     test_sample = pd.read_excel(sample_file)
@@ -71,3 +71,4 @@ def load_dataset(mode='split',
     data_label = test_sample[['Label']]
 
     return CustomDataset(data_features, data_label, reshape_shape=reshape_shape)
+

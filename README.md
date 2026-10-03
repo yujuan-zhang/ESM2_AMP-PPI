@@ -21,12 +21,12 @@ For the environment configuration of other ESM2_AMP modules
  1. Clone this repository or download the project files.
 ```bash  
 # Clone the project  
-git clone https://github.com/ywwy-qn/ESM2_AMP.git  
+git clone https://github.com/yujuan-zhang/ESM2_AMP-PPI.git  
 
 ```
  2. Navigate to the project directory.
 ```bash 
-cd your_path_to_project/ESM2_AMP # Navigate to the project directory  
+cd ESM2_AMP-PPI  
 ```
  
  4. Create a new Conda environment with Python version >= 3.11, then activate the environment:
@@ -42,13 +42,41 @@ pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2
 
  5. (Optional) To enable GPU acceleration with CUDA (e.g., CUDA 11.8), please first install the necessary dependencies via Conda:
 ```bash
-pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 --index-url [https://download.pytorch.org/whl/cu118](https://download.pytorch.org/whl/cu118)
+pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 --index-url https://download.pytorch.org/whl/cu118
 ```
  After successfully installing the dependencies, install the current package with:
 ```bash
 pip install .
 ```
 **Note:** In step5, a matching torch version needs to be installed based on the user's own cuda version. The PyTorch link is [PyTorch](https://pytorch.org/get-started/previous-versions/)
+
+## Minimal prediction example
+
+Run from the repository root after installing the environment above. Download
+the feature data and trained weights from the figshare link below, then place
+the files at these exact paths (they are not all bundled in this checkout):
+
+```text
+model_pred/data/real_test_dataset_features.h5
+model_pred/data/real_test_dataset_samples.xlsx
+model_pred/weights_file/ESM2_AMPS.pth
+```
+
+The HDF5 key is `df`, with protein identifier `Entry` and ESM2 feature columns.
+The Excel file supplies `Protein1`, `Protein2`, and `Label`. IDs must match the
+feature table. This is evaluation of pre-extracted features with known labels,
+not a direct FASTA-to-prediction command.
+
+```bash
+python model_pred/ESM2_AMPS_pred.py
+```
+
+This prints classification metrics and writes `test_predictions_ESM2_AMPS.csv`
+in the working directory. Inspect missing-feature warnings: the current loader
+drops rows with missing data, so output may have fewer rows than the input.
+The CSE and DPM scripts need their own matching checkpoint files; do not rename
+an AMPS checkpoint to use another architecture. Runtime has not been measured
+for this example.
 
 ## Dataset Availability
 
@@ -530,4 +558,5 @@ If you are interested in feature extraction and model interpretation for large l
 - Interpretable feature extraction and dimensionality reduction in ESM2 for protein localization prediction: [Link](https://doi.org/10.1093/bib/bbad534); [GitHub Repositor](https://github.com/yujuan-zhang/feature-representation-for-LLMs)
 
 **Important Note**: As the associated research papers are officially published, this project will continuously update and improve to better serve the scientific research community.
+
 
