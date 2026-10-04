@@ -52,6 +52,10 @@ pip install .
 
 ## Minimal prediction example
 
+For inference, select individual files from [Figshare](https://figshare.com/articles/dataset/ESM2_AMP/28378157); do not download the entire training archive. The real-test feature ZIP is about 1.47 GB, AMPS weights about 862 MB, CSE weights about 859 MB, and DPM weights about 47 MB (decimal sizes, checked on 2026-10-03). Extracted data and memory use require additional space. The AMPS example below needs about 2.33 GB of downloads.
+
+Figshare prefixes the weight filenames with numbers. Rename `2.ESM2_AMPS.pth` to `ESM2_AMPS.pth`, `3.ESM2_AMP_CSE.pth` to `ESM2_AMP_CSE.pth`, or `4.ESM2_DPM.pth` to `ESM2_DPM.pth` when placing the selected model under `model_pred/weights_file/`. Extract `1.real_test_dataset_embedding.zip` and place its real-test HDF5 and sample workbook at the paths below. Training features and attribution archives are not needed for this example.
+
 Run from the repository root after installing the environment above. Download
 the feature data and trained weights from the figshare link below, then place
 the files at these exact paths (they are not all bundled in this checkout):
