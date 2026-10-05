@@ -71,4 +71,3 @@ def load_dataset(mode='split',
     data_label = test_sample[['Label']]
 
     return CustomDataset(data_features, data_label, reshape_shape=reshape_shape)
-

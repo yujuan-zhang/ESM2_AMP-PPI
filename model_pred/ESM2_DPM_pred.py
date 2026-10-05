@@ -50,4 +50,3 @@ print(f"MCC: {mcc:.4f}")
 print(f"Precision: {precision:.4f}")
 
 predictions_df.to_csv(os.path.join('test_predictions_ESM2_DPM.csv'), index=False)
-

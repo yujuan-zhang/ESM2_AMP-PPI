@@ -37,3 +37,4 @@ setup(
     packages=['esm2_infer_feature', 'AMPmodel', 'model_pred', 'AMPmodel_explainable', 'Identification_computational_methods_of_functional_AA_regions', 
             'Comparison_model'],
 )
+

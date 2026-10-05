@@ -1,21 +1,68 @@
-
-
 # ESM2_AMP: an Interpretable Framework for Protein-protein Interactions Prediction and Biological Mechanism Discovery
 
-## Introduction
+## What it does
 
-This project revolves around the paper titled "**ESM2_AMP: an Interpretable Framework for Protein-protein Interactions Prediction and Biological Mechanism Discovery**", aiming to provide relevant datasets and model resources. Through our framework, we hope to enhance the understanding of protein interactions and their underlying biological mechanisms, offering robust support for research in related fields.
+Predict whether two proteins interact from their amino-acid sequences, and
+investigate which sequence representations contribute to that prediction.
+The project includes feature extraction, training and evaluation, saved
+predictors, and feature-attribution analyses. It can be used to score candidate
+protein pairs for follow-up and to reproduce the study's model comparisons.
 
-### Author Contact Information:
+The workflow is:
 
-- Author 1: Yawen Sun, Email: [2108437154@qq.com](mailto:2108437154@qq.com)
-- Author 2: Rui Wang, Email: [2219312248@qq.com](mailto:2219312248@qq.com)
-- Author 3: Zeyu Luo, Email: [1024226968@qq.com](mailto:1024226968@qq.com)
-- Author 4: Yujuan Zhang, Email: [yujuan.zhang418@gmail.com](mailto:yujuan.zhang418@gmail.com)
-  
-Your contributions, feedback, and suggestions are highly appreciated. If you encounter any issues or have questions, feel free to reach out to the authors via the provided email addresses. Thank you for your interest in our work!
+```text
+Two protein sequences → pretrained ESM2 features → train a pair classifier
+                      → save its checkpoint → score protein pairs
+```
 
-## Work Environment Setup
+The feature extractor uses **ESM2-650M**. Three downstream predictors use
+different views of those features:
+
+- **ESM2_AMPS:** segment features from both proteins, processed by a Transformer classifier.
+- **ESM2_AMP_CSE:** CLS, EOS and segment features, processed by a Transformer classifier.
+- **ESM2_DPM:** mean-pooled features from both proteins, processed by a DNN.
+
+The pretrained ESM2 model extracts features; the project-trained checkpoints
+make the interaction predictions. These are separate sets of weights, and
+each predictor needs its matching checkpoint. Attention and attribution
+analyses help investigate important features and sequence regions; they do
+not establish a physical binding interface on their own.
+
+The first example below loads labeled protein pairs, already extracted
+features and a saved predictor. It evaluates predictions without running
+ESM2 extraction or retraining the model. Raw-sequence extraction, training
+and interpretation are separate entry points described later in this README.
+
+## Input
+
+For the AMPS example, use `model_pred/data/real_test_dataset_features.h5` (key `df`, with `Entry` and ESM2 features) and `model_pred/data/real_test_dataset_samples.xlsx` (`Protein1`, `Protein2`, `Label`). Pair IDs must match the feature table.
+
+### Dataset Availability
+
+This project provides training datasets and independent test sets for researchers to explore further. All data resources can be accessed in the **data** folder within each subdirectory, with detailed features available on [figshare](https://figshare.com/articles/dataset/ESM2_AMP/28378157) Detailed information on methods for extracting feature representations from protein sequences can be found in the published research paper (DOI: https://doi.org/10.1093/bib/bbad534), as well as in the corresponding GitHub repository: [Feature Representation for LLMs](https://github.com/yujuan-zhang/feature-representation-for-LLMs?tab=readme-ov-file#feature-representation-model). For detailed information on the extraction of feature embeddings for specific proteins, please refer to the Python library protloc-mex-x (https://pypi.org/project/protloc-mex-x/).
+
+Model founding: 
+This project provides ready-to-use implementations of the **ESM2_AMPS**, **ESM2_AMP_CSE**, **ESM2_DPM**, and **ESM2_GRU** models (ensure your environment meets the upon requirements).
+
+In the **model** script in the AMPmodel directory, the encoder_type is set with three options.
+
+When encoder_type == 'transformer', the ESM2_AMPS and ESM2_AMP_CSE models with transformer are built.
+
+The design differences between the ESM2_AMPS and ESM2_AMP_CSE models mainly lie in the data selection and the dimensions of the dataset, which are primarily reflected in the **AMPmodel/dataset** script.
+
+ESM2_DPM: The global pooling features of the sequence are selected, referred to as ESM2_mean, with a **DNN** used as the downstream classifier.
+
+ESM2_GRU: The transformer module is replaced with **GRU**. When encoder_type == 'gru', it becomes the ESM2_GRU model.
+
+The function encapsulation in the **AMPmodel/check** script for the evalution of the model and the saving of parameters during training, etc.
+
+## Output
+
+Classification metrics in the terminal and `test_predictions_ESM2_AMPS.csv` in the working directory. Rows with missing features are dropped, so check the warnings and output row count.
+
+## Try it
+
+### Work Environment Setup
 
 For the environment configuration of other ESM2_AMP modules
  1. Clone this repository or download the project files.
@@ -26,21 +73,21 @@ git clone https://github.com/yujuan-zhang/ESM2_AMP-PPI.git
 ```
  2. Navigate to the project directory.
 ```bash 
-cd ESM2_AMP-PPI  
+cd ESM2_AMP-PPI # Navigate to the cloned project directory  
 ```
- 
- 4. Create a new Conda environment with Python version >= 3.11, then activate the environment:
+
+4. Create a new Conda environment with Python version >= 3.11, then activate the environment:
 ```bash
 conda create -n esm2_amp-env python=3.11
 conda activate esm2_amp-env
 ```
 
- 4. For CPU-only setup (if you don't need GPU acceleration):
+4. For CPU-only setup (if you don't need GPU acceleration):
 ```bash
 pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2
 ```
 
- 5. (Optional) To enable GPU acceleration with CUDA (e.g., CUDA 11.8), please first install the necessary dependencies via Conda:
+5. (Optional) To enable GPU acceleration with CUDA (e.g., CUDA 11.8), please first install the necessary dependencies via Conda:
 ```bash
 pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 --index-url https://download.pytorch.org/whl/cu118
 ```
@@ -50,7 +97,7 @@ pip install .
 ```
 **Note:** In step5, a matching torch version needs to be installed based on the user's own cuda version. The PyTorch link is [PyTorch](https://pytorch.org/get-started/previous-versions/)
 
-## Minimal prediction example
+### Minimal prediction example
 
 For inference, select individual files from [Figshare](https://figshare.com/articles/dataset/ESM2_AMP/28378157); do not download the entire training archive. The real-test feature ZIP is about 1.47 GB, AMPS weights about 862 MB, CSE weights about 859 MB, and DPM weights about 47 MB (decimal sizes, checked on 2026-10-03). Extracted data and memory use require additional space. The AMPS example below needs about 2.33 GB of downloads.
 
@@ -79,46 +126,41 @@ This prints classification metrics and writes `test_predictions_ESM2_AMPS.csv`
 in the working directory. Inspect missing-feature warnings: the current loader
 drops rows with missing data, so output may have fewer rows than the input.
 The CSE and DPM scripts need their own matching checkpoint files; do not rename
-an AMPS checkpoint to use another architecture. Runtime has not been measured
-for this example.
+an AMPS checkpoint to use another architecture. Full-dataset runtime has not been measured. The local smoke validation uses
+128 real pairs (64 positive and 64 negative) with precomputed features; its
+metrics are not a reproduction of the full paper benchmark.
 
-## Dataset Availability
+### Introduction
 
-This project provides training datasets and independent test sets for researchers to explore further. All data resources can be accessed in the **data** folder within each subdirectory, with detailed features available on [figshare](https://figshare.com/articles/dataset/ESM2_AMP/28378157) Detailed information on methods for extracting feature representations from protein sequences can be found in the published research paper (DOI: https://doi.org/10.1093/bib/bbad534), as well as in the corresponding GitHub repository: [Feature Representation for LLMs](https://github.com/yujuan-zhang/feature-representation-for-LLMs?tab=readme-ov-file#feature-representation-model). For detailed information on the extraction of feature embeddings for specific proteins, please refer to the Python library protloc-mex-x (https://pypi.org/project/protloc-mex-x/).
+This project revolves around the paper titled "**ESM2_AMP: an Interpretable Framework for Protein-protein Interactions Prediction and Biological Mechanism Discovery**", aiming to provide relevant datasets and model resources. Through our framework, we hope to enhance the understanding of protein interactions and their underlying biological mechanisms, offering robust support for research in related fields.
 
-Model founding: 
-This project provides ready-to-use implementations of the **ESM2_AMPS**, **ESM2_AMP_CSE**, **ESM2_DPM**, and **ESM2_GRU** models (ensure your environment meets the upon requirements). 
+#### Author Contact Information:
 
-In the **model** script in the AMPmodel directory, the encoder_type is set with three options. 
+- Author 1: Yawen Sun, Email: [2108437154@qq.com](mailto:2108437154@qq.com)
+- Author 2: Rui Wang, Email: [2219312248@qq.com](mailto:2219312248@qq.com)
+- Author 3: Zeyu Luo, Email: [1024226968@qq.com](mailto:1024226968@qq.com)
 
-When encoder_type == 'transformer', the ESM2_AMPS and ESM2_AMP_CSE models with transformer are built.
+Your contributions, feedback, and suggestions are highly appreciated. If you encounter any issues or have questions, feel free to reach out to the authors via the provided email addresses. Thank you for your interest in our work!
 
-The design differences between the ESM2_AMPS and ESM2_AMP_CSE models mainly lie in the data selection and the dimensions of the dataset, which are primarily reflected in the **AMPmodel/dataset** script.
+### model prediction
 
-ESM2_DPM: The global pooling features of the sequence are selected, referred to as ESM2_mean, with a **DNN** used as the downstream classifier.
-
-ESM2_GRU: The transformer module is replaced with **GRU**. When encoder_type == 'gru', it becomes the ESM2_GRU model.
-
-
-The function encapsulation in the **AMPmodel/check** script for the evalution of the model and the saving of parameters during training, etc.
-
-## model prediction
 During the model prediction phase, multiple metrics such as **Accuracy**, **MCC**, **Recall**, **F1 score**, and **Precision** are used to assess the model's performance.The evaluation metrics and calculation methods are shown in [code](https://github.com/ywwy-qn/ESM2_AMP/AMPmodel/check.py). The implementation code of the model prediction is in the **model_pred** directory, and the implementation process is as follows:
 
-### ESM2_AMPS
+#### ESM2_AMPS
 ```bash
 python model_pred/ESM2_AMPS_pred.py
 ```
-### ESM2_AMP_CSE
+#### ESM2_AMP_CSE
 ```bash
 python model_pred/ESM2_AMP_CSE_pred.py
 ```
-### ESM2_DPM
+#### ESM2_DPM
 ```bash
 python model_pred/ESM2_DPM_pred.py
 ```
 
-## Comparison_model
+### Comparison_model
+
 During this process, we trained, validated, and tested the ESM2_AMPS and ESM2_GRU models on the **Bernett dataset**.
 
 We have provided the trained model weight files on [figshare](https://figshare.com/articles/dataset/ESM2_AMP/28378157) for prediction purposes. These two weight files are saved as **5.ESM2_AMPS_Bernett.zip** and **6.ESM2_GRU_Bernett.zip**, respectively.
@@ -141,18 +183,17 @@ python Comparison_model/ESM2_AMPS_Bernett/Train_val.py
 python Comparison_model/ESM2_GRU_Bernett/Train_val_GRU.py
 ```
 
-
-## AMPmodel_explainable
+### AMPmodel_explainable
 
 1.Attention-based Explainable Analysis ([Attention_explainable](https://github.com/ywwy-qn/ESM2_AMP/tree/main/AMPmodel_explainable/Attention_explainable))
 Both models within the **ESM2_AMP** framework utilize the multi-head attention mechanism of the Transformer encoder. By leveraging the weight matrix allocation in the multi-head attention mechanism, the attention weights corresponding to the sample features are extracted, and their feature importance is calculated and quantified.
 
-### ESM2_AMPS model Attention weights and visualization
+#### ESM2_AMPS model Attention weights and visualization
 ```bash
 python AMPmodel_explainable/Attention_explainable/ESM2_AMPS_attention_weights_visualization.py
 ```
 
-### ESM2_AMP_CSE model Attention weights and visualization
+#### ESM2_AMP_CSE model Attention weights and visualization
 ```bash
 python AMPmodel_explainable/Attention_explainable/ESM2_AMP_CSE_attention_weights_visualization.py
 ```
@@ -160,21 +201,22 @@ python AMPmodel_explainable/Attention_explainable/ESM2_AMP_CSE_attention_weights
 2.[Integrated_Gradients](https://github.com/ywwy-qn/ESM2_AMP/tree/main/AMPmodel_explainable/Integrated_Gradients) for ESM2_AMPS and ESM2_AMP_CSE
 The Integrated Gradients (IG) method was used to compute feature importance values for both models, followed by analysis.
 
-### ESM2_AMPS model Integrated Gradients and visualization
+#### ESM2_AMPS model Integrated Gradients and visualization
 ```bash
 python AMPmodel_explainable/Integrated_Gradients/ESM2_AMPS_IG_attribution.py
 ```
 
-### ESM2_AMP_CSE modelIntegrated Gradients and visualization
+#### ESM2_AMP_CSE modelIntegrated Gradients and visualization
 ```bash
 python AMPmodel_explainable/Integrated_Gradients/ESM2_AMP_CSE_IG_attribution.py
 ```
 **Note:** Since the baseline is calculated by randomly selected samples when computing the IG values, the final IG values may vary. However, the fundamental point we aim to convey remains valid.
 
-## Feature attribution
+### Feature attribution
+
 Including [segment0-9](https://github.com/ywwy-qn/ESM2_AMP/tree/main/Feature_attribution/segment_0_9) features and [cls_segment_eos](https://github.com/ywwy-qn/ESM2_AMP/tree/main/Feature_attribution/cls_segment_eos) features.
 
-#### model constructing
+##### model constructing
 
 The features obtained from ESM2 are fed into an autoencoder for dimensionality reduction to derive a new feature representation, which is then input into a random forest model. This process is named AE_RF and serves as the underlying model for Tree SHAP.
 
@@ -183,19 +225,19 @@ We performed dimensionality reduction on the extracted ESM2 protein feature repr
 
 1.Taking the original 2D matrix of size N15360 as an example, where N is the number of proteins and 15360 is the sum of the 1280 dimensions of `ESM2_cls`, `ESM2_eos`, and `ESM2_segment0-9` features, use the `reshape()` function to restructure it into N * 12 * 1280.
 
- ```python
+```python
  flattened_data = feature_all.reshape(-1, 1280)
  ```
 2.AE model design (For detailed model information, refer to the [Autoencoder_model](https://github.com/ywwy-qn/ESM2_AMP/blob/main/Feature_attribution/Autoencoder_model.py) code in the **Feature_attribution** module). After obtaining the model weight file, input the data and set the hidden layer output to obtain the dimensionality-reduced features corresponding to the proteins.
 
- ```python
+```python
  with torch.no_grad():
      z, _ = ae_model(data_feature_tensor)
  z_npy = z.cpu().numpy()
  ```
 3.The obtained z_npy is a 12N * 150 dimensional vector, where the first dimension represents all feature types of all proteins, and the second dimension represents the 150-dimensional vector of each feature. This step restructures it so that the first dimension corresponds to each protein, resulting in an N * 1800 matrix, where 1800 is derived from 12 * 150.
 
- ```python
+```python
  combined_features_list = []
  for protein in tqdm(protein_names_li, desc="Processing Proteins", unit="protein"):
      related_rows = data_all[data_all['Name'].str.contains(protein)]
@@ -219,7 +261,7 @@ We performed dimensionality reduction on the extracted ESM2 protein feature repr
  ```
 4.Previously, we obtained dimensionality-reduced data at the protein level. Since the input for the random forest model requires features at the protein pair level, this step involves concatenating the dimensionality-reduced protein features based on the protein pair samples.
 
- ```python
+```python
  protein_pairs = pd.merge(protein_pairs, protein_features, how='left',
                                   left_on='Protein1', right_on='new_name')
  # Rename the column name
@@ -254,7 +296,7 @@ We performed dimensionality reduction on the extracted ESM2 protein feature repr
  ```
 5.Random Forest model design and train. Tree SHAP is an interpretability method that relies on decision tree models, and we adopt the Random Forest model. The process of training the RF model and saving the model weights is as follows:
 
- ```python
+```python
  study = optuna.create_study(direction='maximize')
  # operation optimization
  study.optimize(objective, n_trials=30)
@@ -274,7 +316,7 @@ We performed dimensionality reduction on the extracted ESM2 protein feature repr
  ```
 6.Tree SHAP feature importance calculation. The dimensionality-reduced protein pair data obtained above will be input into the trained RF model for inference, serving as the underlying model to calculate the SHAP values.
 
- ```python
+```python
  import shap
  import matplotlib.pyplot as plt
  from joblib import load
@@ -385,7 +427,7 @@ class IGFeatureImportance:
         return grouped_attributions, unique_prefixes
 ```
 **The following are the implementations of several specific feature attribution methods.**
-### segment0-9 (It can be compared with the interpretable results of the ESM2_AMPS model)
+#### segment0-9 (It can be compared with the interpretable results of the ESM2_AMPS model)
 Including AE_RF_Gini, AE_RF_SHAP, AE_DNN_SHAP, AE_DNN_IG.
 
 1.AE_infer
@@ -423,8 +465,7 @@ python Feature_attribution/segment_0_9/AE_RF_Gini/segment_AE_RF_Gini_bar_plot_co
 ```
 After running this line of code, the plot will be saved under the path 'Feature_attribution/segment_0_9/AE_RF_Gini/output'.
 
-
-### cls_segment_eos (It can be compared with the interpretable results of the ESM2_AMP_CSE model)
+#### cls_segment_eos (It can be compared with the interpretable results of the ESM2_AMP_CSE model)
 Also including AE_RF_Gini, AE_RF_SHAP, AE_DNN_SHAP, AE_DNN_IG.
 
 1.AE_infer
@@ -452,7 +493,8 @@ python Feature_attribution/cls_segment_eos/AE_RF_SHAP/cls_segment_eos_AE_RF_SHAP
 python Feature_attribution/cls_segment_eos/AE_RF_Gini/cls_segment_eos_AE_RF_Gini_bar_plot_code.py
 ```
 
-## Identification_computational_methods_of_functional_AA_regions
+### Identification_computational_methods_of_functional_AA_regions
+
 To explore the potential association between feature attention weights and specific residues or residue regions, this study conducted a detailed analysis of the **ESM2_AMPS** model, which relies solely on local features of fragments. Based on samples from the **real_test** dataset, the top three features with the highest weight values in each sample were first identified, and the proportion of their coverage of functional amino acid sequences was calculated. Meanwhile, the three features with the lowest weights were selected as a negative control group for comparison. Information on functional amino acid regions for all proteins in the dataset was obtained from the **UniProt** and **InterPro** databases.
 
 - When analyzing based on the **UniProt** database, the selected functional amino acid region types included: **"Domain"**, **"Region"**, **"Compositional bias"**, **"Repeat"**, and **"Motif"**.
@@ -465,7 +507,7 @@ This section focuses on quantifying the attention weights of the ESM2_AMPS model
 We have provided samples in the **data** directory categorized into four types based on prediction results (true positives, false positives, false negatives, and true negatives). For each of these categories, we calculate the coverage and hit rates. The **Total_information_protein** directory contains functional region information for protein amino acid sequences recorded in public databases. 
 The **code** directory contains the relevant code for this section:
 
-### step1: Calculate the coverage rate.
+#### step1: Calculate the coverage rate.
 This step consists of two scripts: one for calculating the coverage of the Top three segments and another for the Low three segments. These scripts compute both the overall functional amino acid region coverage and the coverage for five specific types: "Domain", "Region", "Compositional bias", "Repeat", and "Motif".
 ```bash
 python Identification_computational_methods_of_functional_AA_regions/code/coverage_Top_computational_process.py
@@ -473,7 +515,7 @@ python Identification_computational_methods_of_functional_AA_regions/code/covera
 ```
 After running the scripts, the results will be saved in Excel format in the **database_uniprot_out** directory.
 
-### step2: Calculate the hit rate.
+#### step2: Calculate the hit rate.
 Based on the coverage calculated in the previous step, different thresholds are set to determine whether samples in each category (TP, FP, TN, FN) hit functional regions, and the hit rate of samples in each category is computed. Similarly, there are two separate scripts for Top and Low segments.
 ```bash
 python Identification_computational_methods_of_functional_AA_regions/code/calculation_of_Top_hit_rate.py
@@ -481,7 +523,7 @@ python Identification_computational_methods_of_functional_AA_regions/code/calcul
 ```
 After running the scripts, the results will be saved in Excel format in the **database_uniprot_out** directory.
 
-### step3: Visualization.
+#### step3: Visualization.
 Based on the obtained coverage results, the data is divided into ten coverage intervals for visualization. The visualization is implemented through two separate scripts:
 
 1. visualization.py - Generates plots specifically for either Top three or Low three segments
@@ -492,8 +534,9 @@ python Identification_computational_methods_of_functional_AA_regions/code/visual
 ```
 After running the scripts, the plots will be saved in Pdf format in the **database_uniprot_out** directory.
 
-## Feature representation
-Additionally, we provide code in the **esm2_infer_feature** directory that enables feature extraction from protein amino acid sequences using the **ESM2** model. 
+### Feature representation
+
+Additionally, we provide code in the **esm2_infer_feature** directory that enables feature extraction from protein amino acid sequences using the **ESM2** model.
 
 The proteins' feature representation used the pre-trained protein model ESM2 developed by Meta company and placed on Hugging Face. For more details, please search in https://huggingface.co/facebook/esm2_t33_650M_UR50D. Besides, we used [protloc-mex-x](https://pypi.org/project/protloc_mex_X/) which our team developed, containing detail for `'cls'`,`'mean'`, `'eos'`,`'segment 0-9'` feature representation from ESM2. For ease of use, we have included sample data in the **data** directory as examples, along with the corresponding scripts to perform the feature extraction.
 ```bash
@@ -503,19 +546,15 @@ After running the scripts, the features' file will be saved in the **output** di
 
 **Note:** If you want to extract the features of your proteins, you can replace the sample data in **data** with your own data and then run the script to achieve it.
 
+**Important Notes**:
 
-**Important Notes**:  
-  
-  • For model inference, the weight file could be foud on [figshare](https://figshare.com/articles/dataset/ESM2_AMP/28378157).
+• For model inference, the weight file could be foud on [figshare](https://figshare.com/articles/dataset/ESM2_AMP/28378157).
 
-
-
-### Model training
+#### Model training
 
 During model training, Optuna is primarily employed for **Bayesian optimization-based hyperparameter selection using the Tree-structured Parzen Estimator (TPE) algorithm**, with key details as follows:
 
 The training process code is in the [Model_work](https://github.com/ywwy-qn/ESM2_AMP/tree/main/Model_work) directory.
-
 
 - In **ESM2_AMPS** model training process, the learning rate was tuned within the range of 1e-5 to 1e-3, while the weight decay was adjusted between 1e-4 and 1e-2. For the MLP module, the first hidden layer size was varied from 480 to 640 with a step size of 160, and the second hidden layer size was explored from 80 to 320 with a step size of 80. Here are the code [details](https://github.com/ywwy-qn/ESM2_AMP/blob/main/Model_work/ESM2_AMPS/optuna_train_5fold.py) and [result](https://github.com/ywwy-qn/ESM2_AMP/blob/main/model_pred/ESM2_AMPS_config.yaml).
 - **ESM2_AMP_CSE** model maintained these parameters but extended the weight decay range to 1e-4-1e-1. Here are the code details and [result](https://github.com/ywwy-qn/ESM2_AMP/blob/main/model_pred/ESM2_AMP_CSE_config.yaml).
@@ -529,7 +568,6 @@ Taking the training of the ESM2_AMPS model as an example, the following is the d
     hidden1_dim = trial.suggest_int('hidden1_dim', low=480, high=640, step=160)
     hidden2_dim = trial.suggest_int('hidden2_dim', low=80, high=320, step=80)
 ```
-
 
 The specific training process is as follows:
 
@@ -551,16 +589,13 @@ The relevant results of the training will be saved in the **Model_work/ESM2_AMP_
 ```
 The relevant results of the training will be saved in the **Model_work/ESM2_DPM/output** directory.
 
-
-
 **Note:** Due to the large size of the training dataset, considering the complexity of reading the data and the preprocessing steps, the processed features of protein pairs will be directly received here instead of performing preprocessing operations on the protein features. This will save a certain amount of time.
 
-### Related Works
+#### Related Works
 
 If you are interested in feature extraction and model interpretation for large language models, you may find our previous work helpful:
 
 - Interpretable feature extraction and dimensionality reduction in ESM2 for protein localization prediction: [Link](https://doi.org/10.1093/bib/bbad534); [GitHub Repositor](https://github.com/yujuan-zhang/feature-representation-for-LLMs)
 
 **Important Note**: As the associated research papers are officially published, this project will continuously update and improve to better serve the scientific research community.
-
 
